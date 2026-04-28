@@ -1,6 +1,6 @@
 {
     "name": "pi-opencode-provider",
-    "version": "0.6.0",
+    "version": "0.7.0",
     "description": "A pi provider extension that adds OpenCode Zen & OpenCode Go support.",
     "keywords": [
         "pi-package",
