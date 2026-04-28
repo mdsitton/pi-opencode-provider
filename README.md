@@ -1,23 +1,25 @@
 # pi-opencode-provider
 
-`pi-opencode-provider` is a [pi](https://github.com/mariozechner/pi-coding-agent) extension that adds [OpenCode Zen](https://opencode.ai/docs/zen/) and [OpenCode Go](https://opencode.ai/docs/go/) as providers.
+**Warning: I built this entire extension before realizing pi already has built-in OpenCode support. I am apparently blind. This extension is not strictly required.**
 
-It registers two providers automatically:
+## So why does this exist?
 
-- `opencode-zen`
-- `opencode-go`
+The built-in OpenCode models are statically generated at pi build time from [models.dev](https://models.dev). When OpenCode adds a new model, you have to wait for a pi release to see it.
 
-## What this extension does
+This extension does **runtime model discovery** instead:
 
-- Adds OpenCode Zen and OpenCode Go to pi's provider list
-- Discovers available models from OpenCode's official `/models` endpoints at startup
-- Enriches model metadata with data from [models.dev](https://models.dev)
-- Routes Zen models to the correct API transport automatically
-- Uses pi's subscription login flow to store your OpenCode API key
+1. Fetches OpenCode's official `/models` endpoints directly at startup
+2. Merges metadata from `models.dev` (context windows, pricing, reasoning support)
+3. Registers the freshest model list with pi
 
-## Requirements
+New models show up without waiting for a pi release. Even if `models.dev` hasn't been updated yet, the extension fetches directly from OpenCode's API — new models are available immediately with best-effort default parameters (128k context, 16k max output).
 
-- pi installed and working
+## Providers
+
+This extension registers two providers that replace the built-in ones:
+
+- `opencode` — replaces the built-in `opencode` (OpenCode Zen)
+- `opencode-go` — replaces the built-in `opencode-go` (OpenCode Go)
 
 ## Installation
 
@@ -25,37 +27,13 @@ It registers two providers automatically:
 pi install pi-opencode-provider
 ```
 
-After installation, the providers are available in pi the next time the extension is loaded.
-
-## OpenCode account and API key setup
-
-Before logging in from pi, create or copy an API key from your OpenCode account.
-
-### OpenCode Zen
-
-1. Sign in at [https://opencode.ai/auth](https://opencode.ai/auth)
-2. Add your billing details
-3. Copy your OpenCode Zen API key
-
-Reference: [OpenCode Zen documentation](https://opencode.ai/docs/zen/)
-
-### OpenCode Go
-
-1. Sign in at [https://opencode.ai/auth](https://opencode.ai/auth)
-2. Subscribe to OpenCode Go
-3. Copy your OpenCode Go API key
-
-Reference: [OpenCode Go documentation](https://opencode.ai/docs/go/)
-
 ## Configure pi
 
-1. Run `/login`
-2. Choose **Use a subscription**
-3. Select **OpenCode Zen** or **OpenCode Go**
-4. Paste your API key when prompted
-5. Run `/model` and choose a model
+Run `/login`, choose **Use a subscription**, select **OpenCode Zen** or **OpenCode Go**, and paste your API key when prompted. Then run `/model` to pick a model.
 
-You can run `/login` again at any time to replace the stored key or switch providers.
+### Migrating from the built-in providers
+
+If you previously used OpenCode with pi's built-in support (via `OPENCODE_API_KEY` env var or `auth.json`), **you still need to run `/login` at least once.** The extension registers an OAuth-based provider that rewrites per-model base URLs for Anthropic models — this only takes effect once your API key is stored through the `/login` flow.
 
 ## Provider behavior
 
@@ -76,11 +54,11 @@ Go models are exposed through the OpenAI-compatible chat completions API.
 
 On startup, the extension:
 
-1. Fetches the official model list from OpenCode
+1. Fetches the official model list from OpenCode's `/models` endpoint
 2. Merges in metadata from `models.dev`
-3. Registers the resolved models with pi
+3. Registers the resolved models with pi, replacing the built-in ones
 
-If the OpenCode model endpoint is unavailable, the extension falls back to `models.dev`. If metadata is still unavailable, conservative defaults are used.
+If the OpenCode model endpoint is unavailable, the extension falls back to `models.dev`. If metadata is still unavailable, conservative defaults (128k context, 16k max tokens) are used.
 
 ## Development
 

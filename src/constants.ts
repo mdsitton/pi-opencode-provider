@@ -16,8 +16,8 @@ export const OAI_COMPAT = {
 	maxTokensField: "max_tokens" as const,
 };
 
-/** Provider ID registered with pi for the Zen tier. */
-export const ZEN_PROVIDER_ID = "opencode-zen";
+/** Provider ID registered with pi for the Zen tier (matches built-in so we replace it). */
+export const ZEN_PROVIDER_ID = "opencode";
 /** Provider ID registered with pi for the Go tier. */
 export const GO_PROVIDER_ID = "opencode-go";
 /** Pseudo-OAuth token lifetime (essentially infinite). */

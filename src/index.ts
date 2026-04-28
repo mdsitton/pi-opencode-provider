@@ -7,8 +7,8 @@
  * 3. Run `/model` to select a model
  *
  * ## Providers
- * - **opencode-zen** — All Zen models (Chat Completions, Responses, Anthropic Messages, Google Gen AI)
- * - **opencode-go**  — All Go models (Chat Completions)
+ * - **opencode** — All Zen models (Chat Completions, Responses, Anthropic Messages, Google Gen AI) — *replaces the built-in `opencode` provider*
+ * - **opencode-go**  — All Go models (Chat Completions) — *replaces the built-in `opencode-go` provider*
  *
  * ## Model discovery
  * The provider merges data from three sources:
@@ -115,7 +115,25 @@ export default async function (pi: ExtensionAPI) {
 		}),
 	]);
 
-	// Register Zen
+	// If OPENCODE_API_KEY is set via env var (the built-in approach) and we
+	// have Anthropic models that need a different base URL, nudge the user to
+	// run /login so the OAuth modifyModels hook rewrites them correctly.
+	if (zenBuckets.anthropic.length > 0 && process.env.OPENCODE_API_KEY) {
+		console.warn(
+			`[pi-opencode] OPENCODE_API_KEY detected with ${zenBuckets.anthropic.length} Anthropic model(s) ` +
+			`that need a different base URL. Run /login and select "OpenCode Zen" ` +
+			`to store your API key for full Anthropic model support.`,
+		);
+	}
+	if (goBuckets.anthropic.length > 0 && process.env.OPENCODE_API_KEY) {
+		console.warn(
+			`[pi-opencode] OPENCODE_API_KEY detected with ${goBuckets.anthropic.length} Anthropic model(s) ` +
+			`that need a different base URL. Run /login and select "OpenCode Go" ` +
+			`to store your API key for full Anthropic model support.`,
+		);
+	}
+
+	// Register Zen (replaces built-in `opencode` provider models)
 	pi.registerProvider(ZEN_PROVIDER_ID, {
 		baseUrl: ZEN_V1_BASE_URL,
 		models: buildZenProviderModels(zenBuckets),
