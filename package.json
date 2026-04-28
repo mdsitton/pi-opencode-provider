@@ -1,0 +1,49 @@
+{
+    "name": "pi-opencode-provider",
+    "version": "0.5.0",
+    "description": "A pi provider extension that adds OpenCode Zen & OpenCode Go support.",
+    "keywords": [
+        "pi-package",
+        "pi-extension",
+        "pi",
+        "opencode",
+        "provider"
+    ],
+    "author": "Matthew Sitton",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/mdsitton/pi-opencode-provider.git"
+    },
+    "homepage": "https://github.com/mdsitton/pi-opencode-provider#readme",
+    "bugs": {
+        "url": "https://github.com/mdsitton/pi-opencode-provider/issues"
+    },
+    "files": [
+        "src",
+        "README.md",
+        "LICENSE"
+    ],
+    "engines": {
+        "node": ">=20"
+    },
+    "scripts": {
+        "typecheck": "tsc -p tsconfig.json"
+    },
+    "peerDependencies": {
+        "@mariozechner/pi-coding-agent": "*",
+        "@mariozechner/pi-ai": "*"
+    },
+    "pi": {
+        "extensions": [
+            "./src/index.ts"
+        ]
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "devDependencies": {
+        "@types/node": "^24.0.0",
+        "typescript": "^5.8.0"
+    }
+}
