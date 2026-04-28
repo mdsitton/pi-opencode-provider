@@ -142,13 +142,13 @@ export function buildEntriesFromModelsDev(
 
 /** Resolve which API transport a Zen model uses (per official docs). */
 export function resolveZenTransport(modelId: string): Transport {
-	if (ZEN_RESPONSES_MODEL_IDS.has(modelId)) return "responses";
-	if (ZEN_ANTHROPIC_MODEL_IDS.has(modelId)) return "anthropic";
-	if (ZEN_GOOGLE_MODEL_IDS.has(modelId)) return "google";
+	if (ZEN_RESPONSES_MODEL_IDS.has(modelId) || modelId.startsWith("gpt-")) return "responses";
+	if (ZEN_ANTHROPIC_MODEL_IDS.has(modelId) || modelId.startsWith("claude-")) return "anthropic";
+	if (ZEN_GOOGLE_MODEL_IDS.has(modelId) || modelId.startsWith("gemini-")) return "google";
 	return "chat";
 }
 
-/** Go models all use the OpenAI-compatible chat bucket for better pi/tool-calling compat. */
+/** Go models all use the OpenAI-compatible chat bucket. */
 export function resolveGoTransport(_modelId: string): Transport {
 	return "chat";
 }
@@ -162,7 +162,8 @@ export function buildModelBuckets(
 	const buckets = emptyBuckets();
 
 	for (const entry of uniqueOfficialEntries(entries)) {
-		const id = entry.id!;
+		const id = entry.id;
+		if (!id) continue;
 		const metadata = getModelsDevModel(provider, id);
 		const model = resolveModelDef(entry, metadata);
 		if (!model) continue;

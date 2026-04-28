@@ -3,7 +3,7 @@
  * the shape pi expects for each API family.
  */
 
-import type { Modality, ModelDef } from "./types.js";
+import type { ModelDef } from "./types.js";
 import { OAI_COMPAT } from "./constants.js";
 
 /** Return per-model compat overrides (e.g. DeepSeek thinking format). */
@@ -25,7 +25,7 @@ export function toOpenAICompletionsModelConfig(m: ModelDef) {
 		name: m.name,
 		api: "openai-completions" as const,
 		reasoning: m.reasoning,
-		input: [...m.input] as Modality[],
+		input: [...m.input],
 		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
 		contextWindow: m.contextWindow,
 		maxTokens: m.maxTokens,
@@ -40,7 +40,7 @@ export function toOpenAIResponsesModelConfig(m: ModelDef) {
 		name: m.name,
 		api: "openai-responses" as const,
 		reasoning: m.reasoning,
-		input: [...m.input] as Modality[],
+		input: [...m.input],
 		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
 		contextWindow: m.contextWindow,
 		maxTokens: m.maxTokens,
@@ -57,7 +57,7 @@ export function toStandardModelConfig(
 		name: m.name,
 		api,
 		reasoning: m.reasoning,
-		input: [...m.input] as Modality[],
+		input: [...m.input],
 		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
 		contextWindow: m.contextWindow,
 		maxTokens: m.maxTokens,

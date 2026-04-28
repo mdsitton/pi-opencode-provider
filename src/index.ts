@@ -68,13 +68,18 @@ function buildGoProviderModels(buckets: ModelBuckets) {
 	return buckets.chat.map(toOpenAICompletionsModelConfig);
 }
 
-/** Point Zen models to the correct base URL (Anthropic Messages vs everything else). */
-function rewriteZenModelBaseUrls(models: Model<Api>[]) {
+/** Point provider models to the correct base URL (Anthropic Messages vs everything else). */
+function rewriteProviderModelBaseUrls(
+	models: Model<Api>[],
+	providerId: string,
+	defaultBaseUrl: string,
+	anthropicBaseUrl: string,
+) {
 	return models.map((model) => {
-		if (model.provider !== ZEN_PROVIDER_ID) return model;
+		if (model.provider !== providerId) return model;
 		return {
 			...model,
-			baseUrl: model.api === "anthropic-messages" ? ZEN_ANTHROPIC_BASE_URL : ZEN_V1_BASE_URL,
+			baseUrl: model.api === "anthropic-messages" ? anthropicBaseUrl : defaultBaseUrl,
 		};
 	});
 }
@@ -94,21 +99,21 @@ export default async function (pi: ExtensionAPI) {
 		console.warn(`[pi-opencode] Failed to fetch models.dev metadata from ${MODELS_DEV_ENDPOINT}.`, error);
 	}
 
-	// Discover Zen models
-	const zenBuckets = await loadProviderBuckets({
-		label: "OpenCode Zen",
-		officialEndpoint: ZEN_MODELS_ENDPOINT,
-		provider: modelsDev?.[MODELS_DEV_PROVIDER_ID_BY_KIND.zen],
-		resolveTransport: (modelId) => resolveZenTransport(modelId),
-	});
-
-	// Discover Go models
-	const goBuckets = await loadProviderBuckets({
-		label: "OpenCode Go",
-		officialEndpoint: GO_MODELS_ENDPOINT,
-		provider: modelsDev?.[MODELS_DEV_PROVIDER_ID_BY_KIND.go],
-		resolveTransport: (modelId) => resolveGoTransport(modelId),
-	});
+	// Discover Zen and Go models in parallel
+	const [zenBuckets, goBuckets] = await Promise.all([
+		loadProviderBuckets({
+			label: "OpenCode Zen",
+			officialEndpoint: ZEN_MODELS_ENDPOINT,
+			provider: modelsDev?.[MODELS_DEV_PROVIDER_ID_BY_KIND.zen],
+			resolveTransport: (modelId) => resolveZenTransport(modelId),
+		}),
+		loadProviderBuckets({
+			label: "OpenCode Go",
+			officialEndpoint: GO_MODELS_ENDPOINT,
+			provider: modelsDev?.[MODELS_DEV_PROVIDER_ID_BY_KIND.go],
+			resolveTransport: (modelId) => resolveGoTransport(modelId),
+		}),
+	]);
 
 	// Register Zen
 	pi.registerProvider(ZEN_PROVIDER_ID, {
@@ -117,7 +122,8 @@ export default async function (pi: ExtensionAPI) {
 		oauth: createApiKeyBackedOAuthProvider({
 			displayName: "OpenCode Zen",
 			promptLabel: "OpenCode Zen",
-			modifyModels: rewriteZenModelBaseUrls,
+			modifyModels: (models) =>
+				rewriteProviderModelBaseUrls(models, ZEN_PROVIDER_ID, ZEN_V1_BASE_URL, ZEN_ANTHROPIC_BASE_URL),
 		}),
 	});
 
