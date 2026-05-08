@@ -1,6 +1,6 @@
 {
     "name": "pi-opencode-provider",
-    "version": "0.7.0",
+    "version": "0.7.1",
     "description": "A pi provider extension that adds OpenCode Zen & OpenCode Go support.",
     "keywords": [
         "pi-package",
@@ -31,8 +31,8 @@
         "typecheck": "tsc -p tsconfig.json"
     },
     "peerDependencies": {
-        "@mariozechner/pi-coding-agent": "*",
-        "@mariozechner/pi-ai": "*"
+        "@earendil-works/pi-coding-agent": "*",
+        "@earendil-works/pi-ai": "*"
     },
     "pi": {
         "extensions": [

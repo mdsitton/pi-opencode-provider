@@ -3,7 +3,7 @@
  * so it slots into pi's subscription-based login flow.
  */
 
-import type { Api, Model, OAuthCredentials, OAuthLoginCallbacks } from "@mariozechner/pi-ai";
+import type { Api, Model, OAuthCredentials, OAuthLoginCallbacks } from "@earendil-works/pi-ai";
 import { PSEUDO_OAUTH_EXPIRY_MS } from "./constants.js";
 
 /** Wrap a plain API key into an {@link OAuthCredentials} shape with a distant expiry. */

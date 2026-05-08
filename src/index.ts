@@ -25,8 +25,8 @@
  * If you notice a discrepancy between the docs and `/models` responses, please file an issue or PR!
  */
 
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import type { Api, Model } from "@mariozechner/pi-ai";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { Api, Model } from "@earendil-works/pi-ai";
 
 import {
 	GO_PROVIDER_ID,
