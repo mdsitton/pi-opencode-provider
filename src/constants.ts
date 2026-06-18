@@ -5,6 +5,11 @@
  * Keep the model-ID sets in sync with the official docs:
  *   https://opencode.ai/docs/zen/
  *   https://opencode.ai/docs/go/
+ *
+ * The per-model adapter assignments (which `npm` adapter each model uses,
+ * and therefore which transport it routes to) are cross-checked against the
+ * OpenCode v1.17.8 client's static catalog — see `../opencode-docs/`
+ * (reverse-engineered from the opencode binary).
  */
 
 import type { Modality } from "./types.js";
@@ -75,19 +80,47 @@ export const ZEN_RESPONSES_MODEL_IDS = new Set([
 
 /** Models that use the Anthropic Messages API. */
 export const ZEN_ANTHROPIC_MODEL_IDS = new Set([
+	// Claude family (also matched by the `claude-` prefix in resolveZenTransport,
+	// listed explicitly as an authoritative catalog).
+	"claude-opus-4-8",
 	"claude-opus-4-7",
 	"claude-opus-4-6",
 	"claude-opus-4-5",
 	"claude-opus-4-1",
+	"claude-fable-5",
 	"claude-sonnet-4-6",
 	"claude-sonnet-4-5",
 	"claude-sonnet-4",
 	"claude-haiku-4-5",
 	"claude-3-5-haiku",
+	// Non-Claude models that override to the Anthropic Messages adapter. These
+	// have no `claude-` prefix, so they MUST be listed explicitly — otherwise
+	// resolveZenTransport would fall back to the `chat` (openai-compatible)
+	// bucket. Note the free/non-free split: e.g. `minimax-m2.5` (paid) uses
+	// openai-compatible while `minimax-m2.5-free` uses anthropic.
+	"minimax-m2.1-free",
+	"minimax-m2.5-free",
+	"minimax-m3-free",
+	"qwen3.5-plus",
+	"qwen3.6-plus",
+	"qwen3.6-plus-free",
 ]);
 
 /** Models that use the Google Generative AI endpoints. */
-export const ZEN_GOOGLE_MODEL_IDS = new Set(["gemini-3.1-pro", "gemini-3-flash"]);
+export const ZEN_GOOGLE_MODEL_IDS = new Set([
+	"gemini-3.5-flash",
+	"gemini-3.1-pro",
+	"gemini-3-pro",
+	"gemini-3-flash",
+]);
 
 /** Go models that use the Anthropic Messages API (not OpenAI-compatible). */
-export const GO_ANTHROPIC_MODEL_IDS = new Set(["qwen3.7-max"]);
+export const GO_ANTHROPIC_MODEL_IDS = new Set([
+	"minimax-m3",
+	"minimax-m2.7",
+	"minimax-m2.5",
+	"qwen3.7-max",
+	"qwen3.7-plus",
+	"qwen3.6-plus",
+	"qwen3.5-plus",
+]);

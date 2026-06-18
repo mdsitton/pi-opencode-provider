@@ -49,8 +49,9 @@ Zen models are mapped automatically to the correct backend API:
 ### OpenCode Go
 
 Most Go models are exposed through the OpenAI-compatible chat completions API.
-A subset (e.g. `qwen3.7-max`) is only available via the Anthropic Messages API
-and is routed there automatically, the same way Zen handles Claude models.
+The MiniMax and Qwen Plus models, however, override to the Anthropic Messages
+API (e.g. `qwen3.7-max`, `qwen3.7-plus`, `minimax-m3`) and are routed there
+automatically, the same way Zen handles Claude models.
 
 ## Model discovery
 
