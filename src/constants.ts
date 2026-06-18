@@ -29,6 +29,8 @@ export const ZEN_V1_BASE_URL = "https://opencode.ai/zen/v1";
 export const ZEN_ANTHROPIC_BASE_URL = "https://opencode.ai/zen";
 /** Base URL for Go OpenAI-compatible endpoints. */
 export const GO_V1_BASE_URL = "https://opencode.ai/zen/go/v1";
+/** Base URL for Go Anthropic Messages endpoints. */
+export const GO_ANTHROPIC_BASE_URL = "https://opencode.ai/zen/go";
 
 /** Official /models endpoint for Zen. */
 export const ZEN_MODELS_ENDPOINT = `${ZEN_V1_BASE_URL}/models`;
@@ -86,3 +88,6 @@ export const ZEN_ANTHROPIC_MODEL_IDS = new Set([
 
 /** Models that use the Google Generative AI endpoints. */
 export const ZEN_GOOGLE_MODEL_IDS = new Set(["gemini-3.1-pro", "gemini-3-flash"]);
+
+/** Go models that use the Anthropic Messages API (not OpenAI-compatible). */
+export const GO_ANTHROPIC_MODEL_IDS = new Set(["qwen3.7-max"]);

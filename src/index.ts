@@ -8,7 +8,7 @@
  *
  * ## Providers
  * - **opencode** — All Zen models (Chat Completions, Responses, Anthropic Messages, Google Gen AI) — *replaces the built-in `opencode` provider*
- * - **opencode-go**  — All Go models (Chat Completions) — *replaces the built-in `opencode-go` provider*
+ * - **opencode-go**  — All Go models (Chat Completions + Anthropic Messages) — *replaces the built-in `opencode-go` provider*
  *
  * ## Model discovery
  * The provider merges data from three sources:
@@ -29,6 +29,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type { Api, Model } from "@earendil-works/pi-ai";
 
 import {
+	GO_ANTHROPIC_BASE_URL,
 	GO_PROVIDER_ID,
 	GO_V1_BASE_URL,
 	MODELS_DEV_ENDPOINT,
@@ -63,9 +64,12 @@ function buildZenProviderModels(buckets: ModelBuckets) {
 	];
 }
 
-/** Flatten Go model buckets (chat-only) into the flat model-config array pi expects. */
+/** Flatten Go model buckets (chat + anthropic) into the flat model-config array pi expects. */
 function buildGoProviderModels(buckets: ModelBuckets) {
-	return buckets.chat.map(toOpenAICompletionsModelConfig);
+	return [
+		...buckets.chat.map(toOpenAICompletionsModelConfig),
+		...buckets.anthropic.map((m) => toStandardModelConfig(m, "anthropic-messages")),
+	];
 }
 
 /** Point provider models to the correct base URL (Anthropic Messages vs everything else). */
@@ -152,6 +156,8 @@ export default async function (pi: ExtensionAPI) {
 		oauth: createApiKeyBackedOAuthProvider({
 			displayName: "OpenCode Go",
 			promptLabel: "OpenCode Go",
+			modifyModels: (models) =>
+				rewriteProviderModelBaseUrls(models, GO_PROVIDER_ID, GO_V1_BASE_URL, GO_ANTHROPIC_BASE_URL),
 		}),
 	});
 }

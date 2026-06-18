@@ -48,7 +48,9 @@ Zen models are mapped automatically to the correct backend API:
 
 ### OpenCode Go
 
-Go models are exposed through the OpenAI-compatible chat completions API.
+Most Go models are exposed through the OpenAI-compatible chat completions API.
+A subset (e.g. `qwen3.7-max`) is only available via the Anthropic Messages API
+and is routed there automatically, the same way Zen handles Claude models.
 
 ## Model discovery
 

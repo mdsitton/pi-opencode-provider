@@ -18,6 +18,7 @@ import {
 	DEFAULT_MAX_TOKENS,
 	DEFAULT_MODEL_INPUT,
 	MODELS_DEV_ENDPOINT,
+	GO_ANTHROPIC_MODEL_IDS,
 	ZEN_ANTHROPIC_MODEL_IDS,
 	ZEN_GOOGLE_MODEL_IDS,
 	ZEN_RESPONSES_MODEL_IDS,
@@ -148,8 +149,9 @@ export function resolveZenTransport(modelId: string): Transport {
 	return "chat";
 }
 
-/** Go models all use the OpenAI-compatible chat bucket. */
-export function resolveGoTransport(_modelId: string): Transport {
+/** Resolve which API transport a Go model uses (per official docs). */
+export function resolveGoTransport(modelId: string): Transport {
+	if (GO_ANTHROPIC_MODEL_IDS.has(modelId)) return "anthropic";
 	return "chat";
 }
 
