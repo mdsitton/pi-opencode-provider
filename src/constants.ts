@@ -12,6 +12,7 @@
  * (reverse-engineered from the opencode binary).
  */
 
+import type { ThinkingLevelMap } from "@earendil-works/pi-ai";
 import type { Modality } from "./types.js";
 
 /** Default OpenAI-compatible configuration for chat-completion models. */
@@ -56,6 +57,22 @@ export const DEFAULT_CONTEXT_WINDOW = 128_000;
 export const DEFAULT_MAX_TOKENS = 16_384;
 /** Fallback input modalities when models.dev metadata is unavailable. */
 export const DEFAULT_MODEL_INPUT: readonly Modality[] = ["text"];
+
+/**
+ * Per-model `thinkingLevelMap` overrides for models NOT in pi's built-in catalog
+ * (or to correct a builtin entry). Layered on top of the carried-over builtin
+ * map in `resolveModelDef`; keyed by model id.
+ */
+// ponytail: modelId-keyed, not provider-scoped — overrides only apply when the
+// builtin lookup for that provider returned nothing, so provider collision is
+// impossible by construction. Revisit if a model ever needs per-provider maps.
+export const THINKING_LEVEL_MAP_OVERRIDES: Record<string, ThinkingLevelMap> = {
+	// GLM-5.2 on the Zen tier: pi's built-in opencode entry has no thinkingLevelMap
+	// (the xhigh fix landed only for opencode-go + openrouter). Fill it in here so
+	// shift-tab exposes xhigh on Zen too. On opencode-go this is a no-op: the
+	// carried-over builtin map wins because overrides only layer on top.
+	"glm-5.2": { off: null, minimal: null, low: null, medium: null, high: "high", xhigh: "max" },
+};
 
 /** Models that use the OpenAI Responses API. */
 export const ZEN_RESPONSES_MODEL_IDS = new Set([

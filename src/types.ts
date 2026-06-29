@@ -1,5 +1,7 @@
 /** Shared types for the OpenCode provider. */
 
+import type { ThinkingLevelMap } from "@earendil-works/pi-ai";
+
 export type Modality = "text" | "image";
 export type Transport = "chat" | "responses" | "google" | "anthropic";
 
@@ -10,6 +12,8 @@ export interface ModelDef {
 	input: readonly Modality[];
 	contextWindow: number;
 	maxTokens: number;
+	/** Carried over from pi's built-in catalog when available; see resolveModelDef. */
+	thinkingLevelMap?: ThinkingLevelMap;
 }
 
 /** Buckets keyed by API transport. */
