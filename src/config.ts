@@ -30,6 +30,7 @@ export function toOpenAICompletionsModelConfig(m: ModelDef) {
 		contextWindow: m.contextWindow,
 		maxTokens: m.maxTokens,
 		compat: getOpenAICompatForModel(m.id),
+		thinkingLevelMap: m.thinkingLevelMap,
 	};
 }
 
@@ -44,6 +45,7 @@ export function toOpenAIResponsesModelConfig(m: ModelDef) {
 		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
 		contextWindow: m.contextWindow,
 		maxTokens: m.maxTokens,
+		thinkingLevelMap: m.thinkingLevelMap,
 	};
 }
 
@@ -61,5 +63,6 @@ export function toStandardModelConfig(
 		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
 		contextWindow: m.contextWindow,
 		maxTokens: m.maxTokens,
+		thinkingLevelMap: m.thinkingLevelMap,
 	};
 }

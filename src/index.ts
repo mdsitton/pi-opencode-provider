@@ -110,12 +110,14 @@ export default async function (pi: ExtensionAPI) {
 			officialEndpoint: ZEN_MODELS_ENDPOINT,
 			provider: modelsDev?.[MODELS_DEV_PROVIDER_ID_BY_KIND.zen],
 			resolveTransport: (modelId) => resolveZenTransport(modelId),
+			providerId: ZEN_PROVIDER_ID,
 		}),
 		loadProviderBuckets({
 			label: "OpenCode Go",
 			officialEndpoint: GO_MODELS_ENDPOINT,
 			provider: modelsDev?.[MODELS_DEV_PROVIDER_ID_BY_KIND.go],
 			resolveTransport: (modelId) => resolveGoTransport(modelId),
+			providerId: GO_PROVIDER_ID,
 		}),
 	]);
 

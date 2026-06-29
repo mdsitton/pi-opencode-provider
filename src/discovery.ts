@@ -3,6 +3,11 @@
  * metadata, resolve API transports, and bucket models by transport family.
  */
 
+import type { Api, Model, ThinkingLevelMap } from "@earendil-works/pi-ai";
+// `getModel` resolves at runtime via pi's extension loader, which aliases
+// `@earendil-works/pi-ai` to the compat entrypoint that re-exports the builtin
+// catalog read as `getModel` (= getBuiltinModel).
+import { getModel as getBuiltinModel } from "@earendil-works/pi-ai";
 import type {
 	ModelBuckets,
 	ModelsDevModelEntry,
@@ -19,10 +24,17 @@ import {
 	DEFAULT_MODEL_INPUT,
 	MODELS_DEV_ENDPOINT,
 	GO_ANTHROPIC_MODEL_IDS,
+	THINKING_LEVEL_MAP_OVERRIDES,
 	ZEN_ANTHROPIC_MODEL_IDS,
 	ZEN_GOOGLE_MODEL_IDS,
 	ZEN_RESPONSES_MODEL_IDS,
 } from "./constants.js";
+
+/** Permissive signature for dynamic builtin lookups by (provider, id). */
+const lookupBuiltinModel = getBuiltinModel as (
+	provider: string,
+	modelId: string,
+) => Model<Api> | undefined;
 
 /** Coerce a value to a positive finite number, or return undefined. */
 export function normalizePositiveNumber(value: unknown): number | undefined {
@@ -102,9 +114,16 @@ export function getModelsDevModel(
 export function resolveModelDef(
 	entry: OpenCodeModelListEntry,
 	metadata: ModelsDevModelEntry | undefined,
+	providerId: string,
 ) {
 	const id = entry.id?.trim();
 	if (!id) return undefined;
+
+	// Carry over `thinkingLevelMap` from pi's built-in catalog for this provider
+	// (e.g. opencode-go/glm-5.2 exposes xhigh). Layer any local override on top.
+	const builtinMap = lookupBuiltinModel(providerId, id)?.thinkingLevelMap;
+	const override = THINKING_LEVEL_MAP_OVERRIDES[id];
+	const thinkingLevelMap: ThinkingLevelMap = { ...builtinMap, ...override };
 
 	return {
 		id,
@@ -113,6 +132,7 @@ export function resolveModelDef(
 		input: normalizeInput(metadata?.modalities?.input) ?? DEFAULT_MODEL_INPUT,
 		contextWindow: normalizePositiveNumber(metadata?.limit?.context) ?? DEFAULT_CONTEXT_WINDOW,
 		maxTokens: normalizePositiveNumber(metadata?.limit?.output) ?? DEFAULT_MAX_TOKENS,
+		...(Object.keys(thinkingLevelMap).length > 0 ? { thinkingLevelMap } : {}),
 	};
 }
 
@@ -160,6 +180,7 @@ export function buildModelBuckets(
 	entries: OpenCodeModelListEntry[],
 	provider: ModelsDevProviderEntry | undefined,
 	resolveTransport: (modelId: string, metadata: ModelsDevModelEntry | undefined) => Transport,
+	providerId: string,
 ): ModelBuckets {
 	const buckets = emptyBuckets();
 
@@ -167,7 +188,7 @@ export function buildModelBuckets(
 		const id = entry.id;
 		if (!id) continue;
 		const metadata = getModelsDevModel(provider, id);
-		const model = resolveModelDef(entry, metadata);
+		const model = resolveModelDef(entry, metadata, providerId);
 		if (!model) continue;
 		buckets[resolveTransport(id, metadata)].push(model);
 	}
@@ -181,6 +202,7 @@ export async function loadProviderBuckets(options: {
 	officialEndpoint: string;
 	provider: ModelsDevProviderEntry | undefined;
 	resolveTransport: (modelId: string, metadata: ModelsDevModelEntry | undefined) => Transport;
+	providerId: string;
 }): Promise<ModelBuckets> {
 	let entries: OpenCodeModelListEntry[] = [];
 
@@ -197,5 +219,5 @@ export async function loadProviderBuckets(options: {
 		entries = buildEntriesFromModelsDev(options.provider);
 	}
 
-	return buildModelBuckets(entries, options.provider, options.resolveTransport);
+	return buildModelBuckets(entries, options.provider, options.resolveTransport, options.providerId);
 }
