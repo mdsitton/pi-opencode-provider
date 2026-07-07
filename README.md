@@ -8,11 +8,14 @@ The built-in OpenCode models are statically generated at pi build time from [mod
 
 This extension does **runtime model discovery** instead:
 
-1. Fetches OpenCode's official `/models` endpoints directly at startup
+1. On first load, fetches OpenCode's official `/models` endpoints directly
 2. Merges metadata from `models.dev` (context windows, pricing, reasoning support)
-3. Registers the freshest model list with pi
+3. Caches the result to `~/.pi/opencode-provider/cache.json` — **subsequent startups use the cache with zero network requests**
+4. Registers the freshest model list with pi
 
 New models show up without waiting for a pi release. Even if `models.dev` hasn't been updated yet, the extension fetches directly from OpenCode's API — new models are available immediately with best-effort default parameters (128k context, 16k max output).
+
+To refresh the model list at any time, run `/pi-opencode-provider:fetch-models`.
 
 ## Providers
 
@@ -55,13 +58,33 @@ automatically, the same way Zen handles Claude models.
 
 ## Model discovery
 
-On startup, the extension:
+### First load (cache miss)
 
-1. Fetches the official model list from OpenCode's `/models` endpoint
-2. Merges in metadata from `models.dev`
-3. Registers the resolved models with pi, replacing the built-in ones
+The extension fetches model data from three sources in parallel:
 
-If the OpenCode model endpoint is unavailable, the extension falls back to `models.dev`. If metadata is still unavailable, conservative defaults (128k context, 16k max tokens) are used.
+1. Official `/models` endpoint for OpenCode Zen (`https://opencode.ai/zen/v1/models`)
+2. Official `/models` endpoint for OpenCode Go (`https://opencode.ai/zen/go/v1/models`)
+3. Metadata from `models.dev` (context windows, output limits, reasoning support)
+
+The resolved model data is cached to `~/.pi/opencode-provider/cache.json` for subsequent startups.
+
+### Subsequent startups (cache hit)
+
+Model data is read directly from the local cache — **zero network requests** — making startup near-instant.
+
+### Fallback
+
+If an official `/models` endpoint is unavailable, the extension falls back to `models.dev` membership. If metadata is still missing, conservative defaults (128k context, 16k max tokens) are used.
+
+### Manual refresh
+
+Run the following command in pi at any time to re-fetch the latest model list from the network:
+
+```
+/pi-opencode-provider:fetch-models
+```
+
+This updates the on-disk cache and re-registers both providers immediately (no `/reload` needed). Run `/model` afterwards to pick a newly added model.
 
 ## Development
 

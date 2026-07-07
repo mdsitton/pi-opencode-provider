@@ -18,6 +18,11 @@
  *
  * Missing metadata falls back to 128k context / 16k max tokens.
  *
+ * ## Caching
+ * Model data is fetched once on first load and cached at
+ * `~/.pi/opencode-provider/cache.json`. Subsequent startups read from cache
+ * without network calls. Run `/pi-opencode-provider:fetch-models` to refresh.
+ *
  * ## Docs
  * - https://opencode.ai/docs/zen/
  * - https://opencode.ai/docs/go/
@@ -52,7 +57,52 @@ import {
 	resolveZenTransport,
 } from "./discovery.js";
 import { createApiKeyBackedOAuthProvider } from "./oauth.js";
-import type { ModelBuckets } from "./types.js";
+import { readModelCache, writeModelCache } from "./cache.js";
+import type { ModelBuckets, ModelsDevResponse } from "./types.js";
+
+// ---------------------------------------------------------------------------
+// Shared fetch + register logic (used by both initial load and refresh cmd)
+// ---------------------------------------------------------------------------
+
+interface FetchedData {
+	modelsDev: ModelsDevResponse | null;
+	zenBuckets: ModelBuckets;
+	goBuckets: ModelBuckets;
+}
+
+/** Fetch models.dev metadata and official /models endpoints, return bucketed data. */
+async function fetchModelData(): Promise<FetchedData> {
+	let modelsDev: ModelsDevResponse | null = null;
+	try {
+		modelsDev = await fetchModelsDevMetadata();
+	} catch (error) {
+		console.warn(
+			`[pi-opencode] Failed to fetch models.dev metadata from ${MODELS_DEV_ENDPOINT}.`,
+			error,
+		);
+	}
+
+	const [zenBuckets, goBuckets] = await Promise.all([
+		loadProviderBuckets({
+			label: "OpenCode Zen",
+			officialEndpoint: ZEN_MODELS_ENDPOINT,
+			provider: modelsDev?.[MODELS_DEV_PROVIDER_ID_BY_KIND.zen],
+			resolveTransport: (modelId) => resolveZenTransport(modelId),
+		}),
+		loadProviderBuckets({
+			label: "OpenCode Go",
+			officialEndpoint: GO_MODELS_ENDPOINT,
+			provider: modelsDev?.[MODELS_DEV_PROVIDER_ID_BY_KIND.go],
+			resolveTransport: (modelId) => resolveGoTransport(modelId),
+		}),
+	]);
+
+	return { modelsDev, zenBuckets, goBuckets };
+}
+
+// ---------------------------------------------------------------------------
+// Build flat model configs & register providers
+// ---------------------------------------------------------------------------
 
 /** Flatten Zen model buckets into the flat model-config array pi expects. */
 function buildZenProviderModels(buckets: ModelBuckets) {
@@ -88,36 +138,9 @@ function rewriteProviderModelBaseUrls(
 	});
 }
 
-/**
- * pi extension entry point.
- *
- * Pre-fetches models.dev metadata once, discovers Zen and Go models in
- * parallel, then registers both providers with pi.
- */
-export default async function (pi: ExtensionAPI) {
-	// Pre-fetch models.dev metadata once for both providers
-	let modelsDev;
-	try {
-		modelsDev = await fetchModelsDevMetadata();
-	} catch (error) {
-		console.warn(`[pi-opencode] Failed to fetch models.dev metadata from ${MODELS_DEV_ENDPOINT}.`, error);
-	}
-
-	// Discover Zen and Go models in parallel
-	const [zenBuckets, goBuckets] = await Promise.all([
-		loadProviderBuckets({
-			label: "OpenCode Zen",
-			officialEndpoint: ZEN_MODELS_ENDPOINT,
-			provider: modelsDev?.[MODELS_DEV_PROVIDER_ID_BY_KIND.zen],
-			resolveTransport: (modelId) => resolveZenTransport(modelId),
-		}),
-		loadProviderBuckets({
-			label: "OpenCode Go",
-			officialEndpoint: GO_MODELS_ENDPOINT,
-			provider: modelsDev?.[MODELS_DEV_PROVIDER_ID_BY_KIND.go],
-			resolveTransport: (modelId) => resolveGoTransport(modelId),
-		}),
-	]);
+/** Register (or re-register) both providers with pi using cached or freshly-fetched data. */
+function registerProviders(pi: ExtensionAPI, data: FetchedData) {
+	const { zenBuckets, goBuckets } = data;
 
 	// If OPENCODE_API_KEY is set via env var (the built-in approach) and we
 	// have Anthropic models that need a different base URL, nudge the user to
@@ -159,5 +182,76 @@ export default async function (pi: ExtensionAPI) {
 			modifyModels: (models) =>
 				rewriteProviderModelBaseUrls(models, GO_PROVIDER_ID, GO_V1_BASE_URL, GO_ANTHROPIC_BASE_URL),
 		}),
+	});
+}
+
+// ---------------------------------------------------------------------------
+// Extension entry point
+// ---------------------------------------------------------------------------
+
+/**
+ * pi extension entry point.
+ *
+ * On first load: fetches models.dev metadata and official /models endpoints,
+ * caches the result, and registers both providers.
+ *
+ * On subsequent loads: reads from the on-disk cache to skip network calls.
+ *
+ * Run `/pi-opencode-provider:fetch-models` at any time to re-fetch and update
+ * the provider model lists.
+ */
+export default async function (pi: ExtensionAPI) {
+	// --- 1. Load model data (cache first, network fallback) ---
+	const cached = readModelCache();
+
+	if (cached) {
+		console.log(
+			`[pi-opencode] Using cached model data from ${new Date(cached.cachedAt).toISOString()}. ` +
+			`Run /pi-opencode-provider:fetch-models to refresh.`,
+		);
+		registerProviders(pi, {
+			modelsDev: cached.modelsDev,
+			zenBuckets: cached.zenBuckets,
+			goBuckets: cached.goBuckets,
+		});
+	} else {
+		console.log("[pi-opencode] No cache found; fetching model data from network…");
+		const data = await fetchModelData();
+		writeModelCache({
+			cachedAt: Date.now(),
+			modelsDev: data.modelsDev,
+			zenBuckets: data.zenBuckets,
+			goBuckets: data.goBuckets,
+		});
+		registerProviders(pi, data);
+	}
+
+	// --- 2. Register /pi-opencode-provider:fetch-models command ---
+	pi.registerCommand("pi-opencode-provider:fetch-models", {
+		description: "Re-fetch OpenCode model list from network and update providers",
+
+		async handler(_args, ctx) {
+			ctx.ui.notify("Fetching OpenCode models…", "info");
+
+			try {
+				const data = await fetchModelData();
+
+				writeModelCache({
+					cachedAt: Date.now(),
+					modelsDev: data.modelsDev,
+					zenBuckets: data.zenBuckets,
+					goBuckets: data.goBuckets,
+				});
+
+				registerProviders(pi, data);
+
+				ctx.ui.notify(
+					`OpenCode models updated (${data.zenBuckets.chat.length + data.zenBuckets.responses.length + data.zenBuckets.google.length + data.zenBuckets.anthropic.length} Zen, ${data.goBuckets.chat.length + data.goBuckets.anthropic.length} Go). Use /model to select.`,
+					"info",
+				);
+			} catch (error) {
+				ctx.ui.notify(`Failed to update OpenCode models: ${error}`, "error");
+			}
+		},
 	});
 }
